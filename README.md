@@ -49,7 +49,7 @@ python train.py --data coco.yaml --cfg yolov5n.yaml --weights '' --batch-size 12
 - coco.yaml 数据参数
 - hyps的yaml文件 训练参数，有关数据增强，学习率(lr,learning)，损失函数等。
 
-###三、数据加载
+### 三、数据加载
 - 数据加载分为两部分，一部分是训练的数据加载，另一部分是预测的数据加载。
 1. 训练部分
 训练的数据加载其实是非常重要的，直接关系到模型的训练，监督模型在训练时加载的数据一般分为两部分，一部分是输入变量，通常是图片；另一部分是标签，在目标检测中就是图片对应的框的坐标，在语义分割中就是每个像素点的种类。
@@ -57,5 +57,54 @@ python train.py --data coco.yaml --cfg yolov5n.yaml --weights '' --batch-size 12
 一般来讲，数据加载部分，模型本身在仓库中的名字是data、datasets或者dataloader。
 
 - 初次看yolov5的库，可能会以为数据加载部分的内容在data文件夹中，点进去会发现，其实data都是数据集下载相关的内容，这种判断错误是正常的，毕竟这属于相似概念了。
-- 实际的数据集加载文件，datasets文件在utils文件夹中。
-简单翻一下datasets，可以知道该文件通过create_dataloader函数构建文件加载器，然后通过LoadImagesAndLabels这个文件加载器的类来获取图片与标签文件。
+- 实际的数据集加载文件，dataloaders文件在utils文件夹中。
+简单翻一下dataloaders.py，可以知道该文件通过create_dataloader函数构建文件加载器，然后通过LoadImagesAndLabels这个文件加载器的类来获取图片与标签文件。
+```Python
+def create_dataloader(path,imgsz,batch_size,stride,single_cls=False,hyp=None,augment=False,cache=False,pad=0.0,
+                      rect=False,rank=-1,workers=8,image_weights=False,quad=False,prefix='',shuffle=False,seed=0):
+```
+然后在这个LoadImagesAndLabels中，算法会进行数据增强、数据预处理等操作，最终返回输入图片与标签。
+```Python
+class LoadImagesAndLabels(Dataset):
+```
+2. 预测部分
+- 预测的数据加载和训练的数据加载相比，少了数据增强与标签处理的部分，因此会相对简单一些，主要是对输入图片进行预处理。
+- 既然是预测部分的数据预处理，我们需要从预测文件开始寻找。
+在detect.py预测文件中可以发现，YoloV5通过文件加载器的方式获得预测的图片文件，在文件加载器中，我们会对图片文件进行预处理，比如resize到一定的大小，进行图片的归一化等
+```Python
+if webcam:
+        view_img = check_imshow(warn=True)
+        dataset = LoadStreams(source, img_size=imgsz, stride=stride, auto=pt, vid_stride=vid_stride)
+        bs = len(dataset)
+    elif screenshot:
+        dataset = LoadScreenshots(source, img_size=imgsz, stride=stride, auto=pt)
+    else:
+        dataset = LoadImages(source, img_size=imgsz, stride=stride, auto=pt, vid_stride=vid_stride)
+    vid_path, vid_writer = [None] * bs, [None] * 
+```
+在utils文件夹中的datasets文件中的LoadImages：
+```Python
+lass LoadImages:
+    # YOLOv5 image/video dataloader, i.e. `python detect.py --source image.jpg/vid.mp4`
+    def __init__(self, path, img_size=640, stride=32, auto=True, transforms=None, vid_stride=1):
+        if isinstance(path, str) and Path(path).suffix == ".txt":  # *.txt file with img/vid/dir on each line
+            path = Path(path).read_text().rsplit()
+        files = []
+        for p in sorted(path) if isinstance(path, (list, tuple)) else [path]:
+            p = str(Path(p).resolve())
+            if '*' in p:
+                files.extend(sorted(glob.glob(p, recursive=True)))  # glob
+            elif os.path.isdir(p):
+                files.extend(sorted(glob.glob(os.path.join(p, '*.*'))))  # dir
+            elif os.path.isfile(p):
+                files.append(p)  # files
+            else:
+                raise FileNotFoundError(f'{p} does not exist')
+
+        images = [x for x in files if x.split('.')[-1].lower() in IMG_FORMATS]
+        videos = [x for x in files if x.split('.')[-1].lower() in VID_FORMATS]
+        ni, nv = len(images), len(videos)
+
+```
+### 四、损失函数
+一般来讲，损失函数在仓库中的名字是Loss（损失），Loss函数是模型优化的目标，在训练过程中Loss理论上是要被越优化越小的。
