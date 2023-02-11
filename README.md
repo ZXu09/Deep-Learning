@@ -1,4 +1,4 @@
-# 下载和使用深度学习库
+# 使用深度学习库
 ## 下载和打开深度学习库
 - git clone在对应文件夹，并用VS code打开
 - 阅读requirement.txt文件，安装对应Python库
@@ -109,4 +109,58 @@ lass LoadImages:
 ### 四、损失函数
 一般来讲，损失函数在仓库中的名字是Loss（损失），Loss函数是模型优化的目标，在训练过程中Loss理论上是要被越优化越小的。
 
-结合train.py调用的函数来看，可以很容易发现，yolov5计算损失时，调用的是ComputeLoss类，进一步定位Loss的计算。
+结合train.py调用的函数来看，可以很容易发现，yolov5计算损失时，调用的是ComputeLoss类。
+```Python
+compute_loss=ComputeLoss(model)//train.py
+```
+进一步定位Loss的计算。
+```Python
+class ComputeLoss://loss.py
+    sort_obj_iou = False
+
+    # Compute losses
+    def __init__(self, model, autobalance=False):
+        device = next(model.parameters()).device  # get model device
+        h = model.hyp  # hyperparameters
+
+        # Define criteria
+        BCEcls = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([h['cls_pw']], device=device))
+        BCEobj = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([h['obj_pw']], device=device))
+
+        # Class label smoothing https://arxiv.org/pdf/1902.04103.pdf eqn 3
+        self.cp, self.cn = smooth_BCE(eps=h.get('label_smoothing', 0.0))  # positive, negative BCE targets
+
+        # Focal loss
+        g = h['fl_gamma']  # focal loss gamma
+        if g > 0:
+            BCEcls, BCEobj = FocalLoss(BCEcls, g), FocalLoss(BCEobj, g)
+```
+Loss组成的话，每个仓库有每个仓库不同的组成方式，因此解析的难度是非常大的，特别是在目标检测中，正样本的选取方式多样，很难直接对Loss有个整体的认知，想要进一步了解Loss的工作，通常要对损失进行一行、一行的分析。
+
+### 五、预测后处理
+预测的后处理主要包括了预测结果的解码与预测图片的可视化。既然是预测部分的后处理，我们需要从预测文件开始寻找。
+```Python
+//在预测Inference之后进行，进行了非极大抑制，然后进行了图片的绘制与可视化。
+ # NMS
+with dt[2]:
+     pred = non_max_suppression(pred, conf_thres, iou_thres, classes, agnostic_nms, max_det=max_det)
+# Second-stage classifier (optional)
+# pred = utils.general.apply_classifier(pred, classifier_model, im, im0s)
+
+# Process predictions
+for i, det in enumerate(pred):  # per image
+    seen += 1
+if webcam:  # batch_size >= 1
+    p, im0, frame = path[i], im0s[i].copy(), dataset.count
+    s += f'{i}: '
+else:
+    p, im0, frame = path, im0s.copy(), getattr(dataset, 'frame', 0)
+```
+## 分解与学习深度学习库
+### 修改目标定位
+在修改仓库前，需要根据所需要修改的功能对需要修改的目标进行定位，比如：
+1. 想要对网络结构进行改进，那么就定位到模型本身，然后修改网络结构的特定部分。
+2. 想要对训练参数进行改进，那么就定位到训练参数，然后查找各个参数的作用，进一步进行修改。
+3. 想要对数据增强进行改进，那么就定位到数据加载，然后分解其中数据增强的部分，修改数据增强的过程。
+4. 想要对损失函数进行改进，那么就定位到损失函数，然后分解其中的回归部分、分类部分等，进一步对细节进行修改。
+5. 想要对预测结果进行改进，那么就定位到预测后处理，然后根据自身需求，分解每个输出的作用，进一步修改。
