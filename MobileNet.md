@@ -6,7 +6,9 @@ MobileNetV2是MobileNet的升级版，它具有两个特征点：
 而在MobileNetV2网络部分，其采用Inverted residuals结构，在3x3网络结构前利用1x1卷积升维，在3x3网络结构后，利用1x1卷积降维，**先进行扩张，再进行压缩**。
 
 2. Linear bottlenecks，为了避免Relu对特征的破坏，在3x3网络结构前利用1x1卷积升维，在3x3网络结构后，再利用1x1卷积降维后，**不再进行Relu6层，直接进行残差网络的加法**。
+
 ![MobileNetV2](https://github.com/SZUZOUXu/Deep-Learning/blob/main/image/MobileNetV2%E5%AF%B9%E6%AF%94.png)
+
 代码部分：
 ```Python
 #-------------------------------------------------------------#
