@@ -196,6 +196,13 @@ bounding box prior如图所示：
 因为模型不会直接预测出预测框，而是通过先验框以及一个转换函数T得到预测框。使得预测框更有针对性。  
 对每个真实框分配计算
 
+### 先验框划分正例
+**将预测结果解码与真实框计算IOU**  
+预测框一共分为三种情况：正例（positive）、负例（negative）、忽略样例（ignore）。
+- **正例**：与真实边界框的IOU为最大值，且高于阈值 0.5的bounding box；类别标签对应类别为1，其余为0；置信度标签为1。
+- **忽略样例**：与真实边界框的IOU 非最大值，但仍高于阈值0.5的bounding box 则不产生cost。
+- **负例**：低于阈值
+
 ### Bounding box
 由三个特征层的输出结果和Anchor box可以计算得到最终的预测框
 
@@ -204,32 +211,32 @@ bounding box prior如图所示：
 其中：
 $𝑏_{𝑥}$ 和 $𝑏_{𝑦}$ 是边界框的中心坐标，𝜎(𝑥)为sigmoid函数，$c_{x}$ 和 $𝑐_{𝑦}$ 分别为方格左上角点相对整张图片的坐标。
 $𝑝_{𝑤}$ 和 $𝑝_{ℎ}$ 为anchor box的宽和高， $𝑡_{w}$ 和 $𝑡_{ℎ}$ 为边界框直接预测出的宽和高， $𝑏_{𝑤}$ 和 $𝑏_{ℎ}$ 为转换后预测的实际宽和高。  
-网络为每个bounding box预测4个值 $t_{𝑥}$ 、 $t_{𝑦}$ 、$𝑡_{w}$ 和 $𝑡_{ℎ}$  
+网络为每个bounding box预测4个值 $t_{𝑥}$ 、 $t_{𝑦}$ 、$𝑡_{w}$ 和 $𝑡_{ℎ}$
+
 特征层中的每一个方格（grid cell）都会预测3个边界框（bounding box） ，每个边界框都会预测三个东西：  
 - 每个框的位置 $𝑏_{𝑥}$ 和 $𝑏_{𝑦}$ 、 $𝑝_{𝑤}$ 和 $𝑝_{ℎ}$ 
-- 框内物体的置信度confidence
-- 框内物体的种类（VOC数据集共20种、COCO数据集共80种）
+- 框内物体的置信度confidence(0 ~ 1)
+- 框内物体的种类（VOC数据集共20种、COCO数据集共80种）(0 ~ 1)
 
 在训练中我们挑选哪个bounding box的准则是选择预测的box与ground truth box的IOU最大的bounding box做为最优的box，
 但是在预测中并没有ground truth box，怎么才能挑选最优的bounding box呢？这就需要另外的参数了，那就是下面要说到的置信度。
 
-### 置信度confidence
-box内**存在对象的概率** * box 与该对象实际box的**IOU**
-分为物体存在的概率（objectness）和物体分类的置信度（class confidence）。
-- **物体存在的概率（objectness）**：与真实框重合度最大的先验框为1
-- 该对象实际box的**IOU**
+### 学习目标是tx，ty，tw，th 偏移量而不是直接学习bx，by，bw，bh呢？
+通过学习偏移量，就可以通过网络原始给定的anchor box坐标经过线性回归（平移加尺度缩放）去逐渐靠近ground truth。
 
+### 置信度confidence
+最终显示的概率为**物体存在的概率**（objectness）和物体**分类的置信度**（class confidence）**相乘**。
+- **物体存在的概率（objectness）**：(20 + 1 + 4)，输出的就是物体存在的概率
+- 物体**分类的置信度**：(20 + 1 + 4)，输出的就是分类的条件概率
+如图所示：
+
+![YOLOV3 Bounding box](https://github.com/SZUZOUXu/Deep-Learning/blob/main/image/YOLOV3%20confidence.png)
+
+**相当于最终显示的概率是class confidence score**
 ### 种类
 - 在置信度表示**当前box有对象**的前提下进行计算；（objectness score = 1）
 - 实现多标签分类：**Logistic regression分类器**：  
 实现多标签分类就需要用Logistic regression分类器来**对每个类别都进行二分类**。Logistic regression分类器主要用到了**sigmoid函数**，它可以把输出约束在0到1，如果某一特征图的输出经过该函数处理后的值**大于设定阈值**，那么就认定该目标框所对应的**目标属于该类**。
-
-### 划分正例
-**将预测结果解码与真实框计算IOU**  
-预测框一共分为三种情况：正例（positive）、负例（negative）、忽略样例（ignore）。
-- **正例**：与真实边界框的IOU为最大值，且高于阈值 0.5的bounding box；类别标签对应类别为1，其余为0；置信度标签为1。
-- **忽略样例**：与真实边界框的IOU 非最大值，但仍高于阈值0.5的bounding box 则忽略其预测值。
-- **负例**：低于阈值
 
 ### 为什么有忽略样例？
 由于Yolov3使用了多尺度特征图，**不同尺度的特征图之间会有重合检测部分**。  
@@ -245,7 +252,6 @@ x、y、w、h使用**MSE**（均方误差）作为损失函数，置信度、类
 
 ![YOLOV3损失函数](https://github.com/SZUZOUXu/Deep-Learning/blob/main/image/YOLOV3%E6%8D%9F%E5%A4%B1%E5%87%BD%E6%95%B0.png)
 
-## 类别
 
 ## 1、计算loss所需参数
 在计算loss的时候，实际上是**pred和target**之间的对比：
