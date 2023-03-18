@@ -131,7 +131,7 @@ VOC数据集分20个类，1判断先验框内是否有物体，4代表先验框�
 **logistic激活函数**来完成，这样就能预测每一个类别是/不是
 代码如下位置："yolo3-pytorch\utils\utils_bbox.py"
 
-## 4、在原图上进行绘制
+## 在原图上进行绘制
 - 通过第三步，我们可以获得预测框在原图上的位置，而且这些预测框都是经过筛选的。
 - 这些筛选后的框可以直接绘制在图片上，就可以获得结果了。
 
@@ -160,36 +160,89 @@ new_image.show()
 
 ```
 # 二、训练部分
+训练过程：
+- 三个有效特征层循环计算损失。
+- 反向传播进行训练。
 ## 评价指标
 - IOU：(A ∩ B)/(A U B),用于判断正例
 - Precision（精度）：预测之中的正确率（挑出的西瓜中好瓜的概率）
 - Recall（召回率）：好瓜有多少比例被挑出来了
 - AP：PR曲线与x轴围成的面积，越接近1越好
-- 预测框置信度confidence：(box 内存在对象的概率 * box 与该对象实际 box 的 IOU)
+- 预测框置信度confidence：(box内存在对象的概率 * box 与该对象实际box的IOU)
 - mAP(mean Average Precision)即各类别AP的平均值  
 IOU from 0.5 to 0.95 with a step size of 0.05，共计9个IOU（0.45/0.05），20个种类（VOC）  
 计算IOU = 0.5作为confidence时的AP...->计算mAP  
-高于阈值的边界框被视为正框，因此，置信度阈值越高，mAP 就越低，但我们对准确性更有信心。
+高于阈值的边界框被视为正框，因此，置信度阈值越高，mAP就越低，但我们对准确性更有信心。
+- optimizer优化器：sgd
 
-optimizer优化器：sgd
-## 梯度下降法
-### 批量梯度下降法
-如果使用梯度下降法(批量梯度下降法)，那么每次迭代过程中都要对**n个样本**进行**求梯度**，所以开销非常大。
-### 随机梯度下降法（stochastic gradient descent，SGD）
-随机梯度下降的思想就是随机采样**一个样本**来更新参数
+## loss求解
+### 计算loss的pred、target
+在计算loss的时候，实际上是**pred和target**之间的对比：
+- pred就是网络的预测结果。**三个特征层每个网格点对应的预测框及其种类**
+- target就是网络的真实框情况。**真实框的x，y，w，h、种类**
 
-随机梯度下降虽然提高了计算效率，降低了计算开销，但是由于每次迭代只随机选择一个样本，因此随机性比较大，所以下降过程中非常曲折。
-### 小批量梯度下降法
-可以选取一定数目的样本组成一个**小批量样本**，然后用这个小批量更新梯度
+<div align=center>
+<img src="https://github.com/SZUZOUXu/Deep-Learning/tree/main/image/loss求解.jpg"/>
+</div>
 
-lr_decay_type 学习率下降：cos
+### Anchor box
+锚框(Anchor box)如图所示：
 
-weight_decay：权值衰减，可防止过拟合
+<div align=center>
+<img src="https://github.com/SZUZOUXu/Deep-Learning/tree/main/image/YOLOV3 anchor box.png"/>
+</div>
 
-### 自适应矩估计（Adaptive Moment Estimation，Adam）
-SGD 低效的根本原因是，梯度的方向并没有指向最小值的方向。为了改正SGD的缺点，引入了Adam。
+每个尺度的特征图会预测出3个Anchor box, 而Anchor box的大小则采用**K-means进行聚类分析**，在训练集中所有样本的真实框中聚类出**具有代表性形状的宽和高**。
 
-梯度下降速度快，但是容易在最优值附近震荡。
+### Anchor box 的作用：
+**降低模型学习难度，模型训练更加稳定，获得更高的precision。**  
+因为模型不会直接预测出预测框，而是通过先验框以及一个转换函数T得到预测框。使得预测框更有针对性。  
+一个物体和哪个锚框匹配度最高就会被指定给这个锚框。
+
+### Bounding box
+由三个特征层的输出结果和Anchor box可以计算得到最终的预测框
+
+<div align=center>
+<img src="https://github.com/SZUZOUXu/Deep-Learning/tree/main/image/YOLOV3 Bounding box.png"/>
+</div>
+
+其中：
+𝑏_𝑥和𝑏_𝑦是边界框的中心坐标，𝜎(𝑥)为sigmoid函数，𝑐_𝑥和𝑐_𝑦分别为方格左上角点相对整张图片的坐标
+
+
+
+在训练中我们挑选哪个bounding box的准则是选择预测的box与ground truth box的IOU最大的bounding box做为最优的box，
+但是在预测中并没有ground truth box，怎么才能挑选最优的bounding box呢？这就需要另外的参数了，那就是下面要说到的置信度。
+
+
+### bounding box的confidence
+分为物体存在的概率（objectness）和物体分类的置信度（class confidence）。
+- **物体存在的概率（objectness）**：预测时三个特征层的输出(20+1+4)
+- 
+### 划分正例
+**将预测结果解码与真实框计算IOU**  
+预测框一共分为三种情况：正例（positive）、负例（negative）、忽略样例（ignore）。
+- **正例**：与真实边界框的IOU为最大值，且高于阈值 0.5的bounding box；类别标签对应类别为1，其余为0；置信度标签为1。
+- **忽略样例**：与真实边界框的IOU 非最大值，但仍高于阈值0.5的bounding box 则忽略其预测值。
+- **负例**：低于阈值
+
+### 为什么有忽略样例？
+由于Yolov3使用了多尺度特征图，**不同尺度的特征图之间会有重合检测部分**。  
+比如有一个真实物体，在训练时被分配到的检测框是特征图1的第三个box，IOU达0.98，此时恰好特征图2的第一个box与该ground truth的IOU达0.95，也检测到了该ground truth。
+**如果给IOU高的物体的置信度强行打0的标签，网络学习效果会不理想。**
+
+### 损失函数
+x、y、w、h使用**MSE**（均方误差）作为损失函数，置信度、类别标签由于是0，1二分类，所以使用**交叉熵**作为损失函数。  
+- 预测框置信度： (box 内存在对象的概率 * box 与该对象实际 box 的 IOU)
+- 一个预测框的置信度 (Confidence) 代表了是否包含对象且位置正确的准确度.
+损失函数如图所示：
+
+<div align=center>
+<img src="https://github.com/SZUZOUXu/Deep-Learning/tree/main/image/YOLOV3损失函数.png"/>
+</div>
+
+## 类别
+
 ## 1、计算loss所需参数
 在计算loss的时候，实际上是**pred和target**之间的对比：
 - pred就是网络的预测结果。
