@@ -36,13 +36,13 @@
 激活函数在残差网络中的使用：
 
 <div align=center>
-<img src="https://github.com/SZUZOUXu/Deep-Learning/blob/main/image/激活函数在残差网络中的使用.png"/>
+<img src="https://github.com/SZUZOUXu/Deep-Learning/blob/main/image/激活函数在残差网络中的使用.jpg"/>
 </div>
 
 结果显示：将激活函数移动到残差部分（对应图e）可以提高模型的精度：
 
 <div align=center>
-<img src="https://github.com/SZUZOUXu/Deep-Learning/blob/main/image/激活函数在残差网络中的使用.jpg"/>
+<img src="https://github.com/SZUZOUXu/Deep-Learning/blob/main/image/基于激活函数位置的变异模型在Cifar10上的实验结果.jpg"/>
 </div>
 
 ### 残差网络与模型集成
