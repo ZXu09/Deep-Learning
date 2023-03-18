@@ -17,7 +17,7 @@
 4. 残差网络：保证信息不丢失。前向传输的过程中，随着层数的加深，Feature Map包含的图像信息会逐层减少，而ResNet的**直接映射**的加入，保证了 l+1 层的网络一定比 l 层包含**更多的图像信息**。基于这种使用**直接映射**来连接网络不同层直接的思想，**残差网络**应运而生。
 
 <div align=center>
-<img src="https://github.com/SZUZOUXu/Deep-Learning/blob/main/image/残差网络.png"/>
+<img src="https://github.com/SZUZOUXu/Deep-Learning/blob/main/image/残差网络.jpg"/>
 </div>
 
 ### 为什么叫残差网络
