@@ -198,7 +198,7 @@ IOU from 0.5 to 0.95 with a step size of 0.05，共计9个IOU（0.45/0.05），2
 ### Bounding box
 由三个特征层的输出结果和Anchor box可以计算得到最终的预测框
 
-![YOLOV3 Bounding box](https://github.com/SZUZOUXu/Deep-Learning/blob/main/image/YOLOV3 Bounding box.png)
+![YOLOV3 Bounding box](https://github.com/SZUZOUXu/Deep-Learning/blob/main/image/YOLOV3%20anchor%20box.png)
 
 其中：
 $𝑏_{𝑥}$和$𝑏_{𝑦}$是边界框的中心坐标，𝜎(𝑥)为sigmoid函数，$𝑐_{𝑥}$和$𝑐_{𝑦}$分别为方格左上角点相对整张图片的坐标。
@@ -242,9 +242,7 @@ x、y、w、h使用**MSE**（均方误差）作为损失函数，置信度、类
 - 一个预测框的置信度 (Confidence) 代表了是否包含对象且位置正确的准确度.
 损失函数如图所示：
 
-<div align=center>
-<img src="https://github.com/SZUZOUXu/Deep-Learning/tree/main/image/YOLOV3损失函数.png"/>
-</div>
+![YOLOV3损失函数](https://github.com/SZUZOUXu/Deep-Learning/blob/main/image/YOLOV3%E6%8D%9F%E5%A4%B1%E5%87%BD%E6%95%B0.png)
 
 ## 类别
 
