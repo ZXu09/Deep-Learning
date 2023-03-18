@@ -181,16 +181,12 @@ IOU from 0.5 to 0.95 with a step size of 0.05，共计9个IOU（0.45/0.05），2
 - pred就是网络的预测结果。**三个特征层每个网格点对应的预测框及其种类**
 - target就是网络的真实框情况。**真实框的x，y，w，h、种类**
 
-<div align=center>
-<img src="https://github.com/SZUZOUXu/Deep-Learning/tree/main/image/loss求解.jpg"/>
-</div>
+![loss求解](https://github.com/SZUZOUXu/Deep-Learning/blob/main/image/loss%E6%B1%82%E8%A7%A3.jpg)
 
 ### Anchor box
 锚框(Anchor box)如图所示：
 
-<div align=center>
-<img src="https://github.com/SZUZOUXu/Deep-Learning/tree/main/image/YOLOV3 anchor box.png"/>
-</div>
+![YOLOV3 anchor box](https://github.com/SZUZOUXu/Deep-Learning/blob/main/image/YOLOV3%20anchor%20box.png)
 
 每个尺度的特征图会预测出3个Anchor box, 而Anchor box的大小则采用**K-means进行聚类分析**，在训练集中所有样本的真实框中聚类出**具有代表性形状的宽和高**。
 
@@ -202,9 +198,7 @@ IOU from 0.5 to 0.95 with a step size of 0.05，共计9个IOU（0.45/0.05），2
 ### Bounding box
 由三个特征层的输出结果和Anchor box可以计算得到最终的预测框
 
-<div align=center>
-<img src="https://github.com/SZUZOUXu/Deep-Learning/tree/main/image/YOLOV3 Bounding box.png"/>
-</div>
+![YOLOV3 Bounding box](https://github.com/SZUZOUXu/Deep-Learning/blob/main/image/YOLOV3 Bounding box.png)
 
 其中：
 $𝑏_{𝑥}$和$𝑏_{𝑦}$是边界框的中心坐标，𝜎(𝑥)为sigmoid函数，$𝑐_{𝑥}$和$𝑐_{𝑦}$分别为方格左上角点相对整张图片的坐标。
