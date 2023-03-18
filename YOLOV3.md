@@ -183,17 +183,18 @@ IOU from 0.5 to 0.95 with a step size of 0.05，共计9个IOU（0.45/0.05），2
 
 ![loss求解](https://github.com/SZUZOUXu/Deep-Learning/blob/main/image/loss%E6%B1%82%E8%A7%A3.jpg)
 
-### Anchor box
-锚框(Anchor box)如图所示：
+### Bounding box prior先验框
+bounding box prior如图所示：
 
 ![YOLOV3 anchor box](https://github.com/SZUZOUXu/Deep-Learning/blob/main/image/YOLOV3%20anchor%20box.png)
 
-每个尺度的特征图会预测出3个Anchor box, 而Anchor box的大小则采用**K-means进行聚类分析**，在训练集中所有样本的真实框中聚类出**具有代表性形状的宽和高**。
+每个尺度的特征图会预测出3个bounding box prior, 而bounding box prior的大小则采用**K-means进行聚类分析**，在训练集中所有样本的真实框中聚类出**具有代表性形状的宽和高**。
+对每个真实框分配一个IOU最高的先验框（1对1），其objectness score = 1若一个真实框分配多个IOU，会损失计算的物体存在的概率（objectness）
 
-### Anchor box 的作用：
+### Bounding box prior 的作用：
 **降低模型学习难度，模型训练更加稳定，获得更高的precision。**  
 因为模型不会直接预测出预测框，而是通过先验框以及一个转换函数T得到预测框。使得预测框更有针对性。  
-一个物体和哪个锚框匹配度最高就会被指定给这个锚框。
+对每个真实框分配计算
 
 ### Bounding box
 由三个特征层的输出结果和Anchor box可以计算得到最终的预测框
@@ -201,9 +202,9 @@ IOU from 0.5 to 0.95 with a step size of 0.05，共计9个IOU（0.45/0.05），2
 ![YOLOV3 Bounding box](https://github.com/SZUZOUXu/Deep-Learning/blob/main/image/YOLOV3%20anchor%20box.png)
 
 其中：
-$𝑏_{𝑥}$ 和 $𝑏_{𝑦}$ 是边界框的中心坐标，𝜎(𝑥)为sigmoid函数，$𝑐_{𝑥}$ 和 $𝑐_{𝑦}$ 分别为方格左上角点相对整张图片的坐标。
-$𝑝_{𝑤}$ 和 $𝑝_{ℎ}$ 为anchor box的宽和高， $𝑡_{𝑤}$ 和 $𝑡_{ℎ}$ 为边界框直接预测出的宽和高， $𝑏_{𝑤}$ 和 $𝑏_{ℎ}$ 为转换后预测的实际宽和高。
-网络为每个bounding box预测4个值 $t_{𝑥}$ 、 $t_{𝑦}$ 、$𝑡_{𝑤}$ 和 $𝑡_{ℎ}$  
+$𝑏_{𝑥}$ 和 $𝑏_{𝑦}$ 是边界框的中心坐标，𝜎(𝑥)为sigmoid函数，$c_{x}$ 和 $𝑐_{𝑦}$ 分别为方格左上角点相对整张图片的坐标。
+$𝑝_{𝑤}$ 和 $𝑝_{ℎ}$ 为anchor box的宽和高， $𝑡_{w}$ 和 $𝑡_{ℎ}$ 为边界框直接预测出的宽和高， $𝑏_{𝑤}$ 和 $𝑏_{ℎ}$ 为转换后预测的实际宽和高。  
+网络为每个bounding box预测4个值 $t_{𝑥}$ 、 $t_{𝑦}$ 、$𝑡_{w}$ 和 $𝑡_{ℎ}$  
 特征层中的每一个方格（grid cell）都会预测3个边界框（bounding box） ，每个边界框都会预测三个东西：  
 - 每个框的位置 $𝑏_{𝑥}$ 和 $𝑏_{𝑦}$ 、 $𝑝_{𝑤}$ 和 $𝑝_{ℎ}$ 
 - 框内物体的置信度confidence
@@ -215,11 +216,11 @@ $𝑝_{𝑤}$ 和 $𝑝_{ℎ}$ 为anchor box的宽和高， $𝑡_{𝑤}$ 和 $�
 ### 置信度confidence
 box内**存在对象的概率** * box 与该对象实际box的**IOU**
 分为物体存在的概率（objectness）和物体分类的置信度（class confidence）。
-- **物体存在的概率（objectness）**：锚框与
+- **物体存在的概率（objectness）**：与真实框重合度最大的先验框为1
 - 该对象实际box的**IOU**
 
 ### 种类
-- 置信度表示**当前box有对象**的前提下进行计算；
+- 在置信度表示**当前box有对象**的前提下进行计算；（objectness score = 1）
 - 实现多标签分类：**Logistic regression分类器**：  
 实现多标签分类就需要用Logistic regression分类器来**对每个类别都进行二分类**。Logistic regression分类器主要用到了**sigmoid函数**，它可以把输出约束在0到1，如果某一特征图的输出经过该函数处理后的值**大于设定阈值**，那么就认定该目标框所对应的**目标属于该类**。
 
