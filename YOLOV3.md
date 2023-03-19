@@ -28,6 +28,23 @@
 
 生成目录：快捷键CTRL(CMD)+SHIFT+P，输入Markdown All in One: Create Table of Contents回车
 # yolov3-pytorch
+### 为什么叫You Only Look Once
+因为YOLOv3是**One-stage算法**，它在预测时只需要进行**一次前向传播直接回归物体的类别概率和位置坐标值**，使得**单一的网络就能够同时完成定位和分类**。运行速度明显快于具有可比性能的其他检测方法。
+- **One-stage**：直接回归物体的类别概率和位置坐标值，单一的网络就能够同时完成定位和分类
+- **Two stage**：首先产生候选区域（region proposals），先定位、后识别的任务。
+
+### 回归问题、分类问题
+YOLOv3 将对象检测问题构建为两步问题，首先识别边界框（回归问题），然后识别该对象的类（分类问题）。
+- 回归算法用于连续型样本的预测
+- 分类算法用于离散的类别标签
+
+### YOLOV3的改进、优势
+- 使用多尺度特征进行对象检测，优化了对小物体的检测效果。
+- 改进了多个独立的Logistic regression分类器来取代softmax来预测类别分类，方便支持多标签物体。
+- 当使用mAP50作为评估指标时，YOLOv3的表现非常惊人，在精确度相当的情况下，YOLOv3的速度是其他模型的3,4倍。
+
+![YOLOV3 mAP-50](https://github.com/SZUZOUXu/Deep-Learning/blob/main/image/YOLOV3/YOLOV3%20map50.png)
+
 # 一、预测部分
 ## 1、主干特征提取网络darknet53介绍
 输入416×416×3->进行下采样，宽高不断压缩，同时通道数不断扩张；若是进行上采样，宽高不断扩张，同时通道数不断压缩。
