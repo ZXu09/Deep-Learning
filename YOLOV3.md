@@ -18,7 +18,6 @@
   - [评价指标](#评价指标)
   - [loss求解](#loss求解)
     - [Bounding box prior先验框](#bounding-box-prior先验框)
-    - [Bounding box prior 的作用：](#bounding-box-prior-的作用)
     - [Bounding box prior样本划分](#bounding-box-prior样本划分)
     - [训练用例->Bounding box prior](#训练用例-bounding-box-prior)
     - [Bounding box](#bounding-box)
