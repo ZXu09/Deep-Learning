@@ -13,11 +13,15 @@
 ***
 1. [二、训练部分](#二训练部分)
     - [评价指标](#评价指标)
-    - [梯度下降法](#梯度下降法)
-2. [计算loss所需参数](#1计算loss所需参数)
-3. [pred是什么](#2pred是什么)
-4. [target是什么](#3target是什么)
-5. [loss的计算过程](#4loss的计算过程)
+2. [loss求解](#loss求解)
+    - [Bounding box prior先验框](#Bounding box prior先验框)
+    - [Bounding box prior样本划分](#Bounding box prior样本划分)
+    - [训练用例->Bounding box prior](#训练用例->Bounding box prior)
+    - [Bounding box](#Bounding box)
+    - [种类-class confidence](#种类-class confidence)
+    - [置信度confidence](#置信度confidence)
+    - [损失函数](#损失函数)
+
 
 生成目录：快捷键CTRL(CMD)+SHIFT+P，输入Markdown All in One: Create Table of Contents回车
 # yolov3-pytorch
@@ -189,31 +193,43 @@ bounding box prior如图所示：
 ![YOLOV3 anchor box](https://github.com/SZUZOUXu/Deep-Learning/blob/main/image/YOLOV3%20anchor%20box.png)
 
 每个尺度的特征图会预测出3个bounding box prior, 而bounding box prior的大小则采用**K-means进行聚类分析**，在训练集中所有样本的真实框中聚类出**具有代表性形状的宽和高**。
-对每个真实框分配一个IOU最高的先验框（1对1），其objectness score = 1若一个真实框分配多个IOU，会损失计算的物体存在的概率（objectness）
+**对每个真实框分配一个IOU最高的先验框（1对1）**，其objectness score = 1若一个真实框分配多个IOU，会损失计算的物体存在的概率（objectness）
 
 ### Bounding box prior 的作用：
 **降低模型学习难度，模型训练更加稳定，获得更高的precision。**  
 因为模型不会直接预测出预测框，而是通过先验框以及一个转换函数T得到预测框。使得预测框更有针对性。  
-对每个真实框分配计算
 
-### 先验框划分正例
-**将预测结果解码与真实框计算IOU**  
-预测框一共分为三种情况：正例（positive）、负例（negative）、忽略样例（ignore）。
-- **正例**：与真实边界框的IOU为最大值，且高于阈值 0.5的bounding box；类别标签对应类别为1，其余为0；置信度标签为1。
-- **忽略样例**：与真实边界框的IOU 非最大值，但仍高于阈值0.5的bounding box 则不产生cost。
-- **负例**：低于阈值
+### Bounding box prior样本划分
+**将先验框与真实框计算IOU**  
+先验框一共分为三种情况：正例（positive）、负例（negative）、忽略样例（ignore）。
+- **正例**：与真实边界框的IOU为最大值，且高于阈值 0.5的bounding box；类别标签对应类别为1，其余为0；置信度标签为1。**产生所有损失**
+- **忽略样例**：与真实边界框的IOU 非最大值，但仍高于阈值0.5的bounding box 则不产生cost。**不产生任何损失**
+- **负例**：低于阈值。**只产生置信度损失**  
+
+### 训练的时候为什么需要进行正负样本筛选？
+在目标检测中不能将所有的预测框都进入损失函数进行计算，主要原因是框太多，参数量太大，因此需要先将正负样本选择出来，再进行损失函数的计算。
+
+### 为什么有忽略样例？
+由于Yolov3使用了多尺度特征图，**不同尺度的特征图之间会有重合检测部分**。  
+比如有一个真实物体，在训练时被分配到的先验框是特征图1的第三个box，IOU达0.98，此时恰好特征图2的第一个box与该ground truth的IOU达0.95，也检测到了该ground truth。
+**如果给IOU高的物体的置信度强行打0的标签，网络学习效果会不理想。**
+
+### 训练用例->Bounding box prior
+每个网格对应3个先验框，当作样本进行训练，如图所示：
+
+![YOLOV3 anchors](https://github.com/SZUZOUXu/Deep-Learning/blob/main/image/YOLOV3%20anchors.jpg)
 
 ### Bounding box
-由三个特征层的输出结果和Anchor box可以计算得到最终的预测框
+由三个特征层的输出结果和Bounding box prior可以计算得到最终的预测框
 
 ![YOLOV3 Bounding box](https://github.com/SZUZOUXu/Deep-Learning/blob/main/image/YOLOV3%20anchor%20box.png)
 
 其中：
-$𝑏_{𝑥}$ 和 $𝑏_{𝑦}$ 是边界框的中心坐标，𝜎(𝑥)为sigmoid函数，$c_{x}$ 和 $𝑐_{𝑦}$ 分别为方格左上角点相对整张图片的坐标。
+$𝑏_{𝑥}$ 和 $𝑏_{𝑦}$ 是边界框的中心坐标，𝜎(𝑥)为sigmoid函数， $c_{x}$ 和 $𝑐_{𝑦}$ 分别为方格左上角点相对整张图片的坐标。
 $𝑝_{𝑤}$ 和 $𝑝_{ℎ}$ 为anchor box的宽和高， $𝑡_{w}$ 和 $𝑡_{ℎ}$ 为边界框直接预测出的宽和高， $𝑏_{𝑤}$ 和 $𝑏_{ℎ}$ 为转换后预测的实际宽和高。  
-网络为每个bounding box预测4个值 $t_{𝑥}$ 、 $t_{𝑦}$ 、$𝑡_{w}$ 和 $𝑡_{ℎ}$
+网络为每个bounding box预测4个值 $t_{𝑥}$ 、 $t_{𝑦}$ 、 $t_{w}$ 和 $𝑡_{ℎ}$
 
-特征层中的每一个方格（grid cell）都会预测3个边界框（bounding box） ，每个边界框都会预测三个东西：  
+特征层中的每一个方格（grid cell）都会预测3个边界框（bounding box），每个边界框都会预测三个东西：  
 - 每个框的位置 $𝑏_{𝑥}$ 和 $𝑏_{𝑦}$ 、 $𝑝_{𝑤}$ 和 $𝑝_{ℎ}$ 
 - 框内物体的置信度confidence(0 ~ 1)
 - 框内物体的种类（VOC数据集共20种、COCO数据集共80种）(0 ~ 1)
@@ -222,7 +238,15 @@ $𝑝_{𝑤}$ 和 $𝑝_{ℎ}$ 为anchor box的宽和高， $𝑡_{w}$ 和 $𝑡
 但是在预测中并没有ground truth box，怎么才能挑选最优的bounding box呢？这就需要另外的参数了，那就是下面要说到的置信度。
 
 ### 学习目标是tx，ty，tw，th 偏移量而不是直接学习bx，by，bw，bh呢？
-通过学习偏移量，就可以通过网络原始给定的anchor box坐标经过线性回归（平移加尺度缩放）去逐渐靠近ground truth。
+bx，by，bw，bh的数值大小和 objectness score 以及 class probilities 差太多了，会**给训练带来困难**。
+
+### 为什么要用指数？
+公式中多加了exp操作，应该是为了保证缩放比大于 0，不然在优化的时候会多一个 $𝑡_{w} > 0$ 和 $𝑡_{ℎ} > 0$ 的约束，这时候**SGD这种无约束求极值算法**是用不了的。
+
+### 种类-class confidence
+- 在置信度表示**当前box有对象**的前提下进行计算；（objectness score = 1）
+- 实现多标签分类：**Logistic regression分类器**：  
+实现多标签分类就需要用Logistic regression分类器来**对每个类别都进行二分类**。Logistic regression分类器主要用到了**sigmoid函数**，它可以把输出约束在0到1，如果某一特征图的输出经过该函数处理后的值**大于设定阈值**，那么就认定该目标框所对应的**目标属于该类**。
 
 ### 置信度confidence
 最终显示的概率为**物体存在的概率**（objectness）和物体**分类的置信度**（class confidence）**相乘**。
@@ -233,15 +257,6 @@ $𝑝_{𝑤}$ 和 $𝑝_{ℎ}$ 为anchor box的宽和高， $𝑡_{w}$ 和 $𝑡
 ![YOLOV3 Bounding box](https://github.com/SZUZOUXu/Deep-Learning/blob/main/image/YOLOV3%20confidence.png)
 
 **相当于最终显示的概率是class confidence score**
-### 种类
-- 在置信度表示**当前box有对象**的前提下进行计算；（objectness score = 1）
-- 实现多标签分类：**Logistic regression分类器**：  
-实现多标签分类就需要用Logistic regression分类器来**对每个类别都进行二分类**。Logistic regression分类器主要用到了**sigmoid函数**，它可以把输出约束在0到1，如果某一特征图的输出经过该函数处理后的值**大于设定阈值**，那么就认定该目标框所对应的**目标属于该类**。
-
-### 为什么有忽略样例？
-由于Yolov3使用了多尺度特征图，**不同尺度的特征图之间会有重合检测部分**。  
-比如有一个真实物体，在训练时被分配到的检测框是特征图1的第三个box，IOU达0.98，此时恰好特征图2的第一个box与该ground truth的IOU达0.95，也检测到了该ground truth。
-**如果给IOU高的物体的置信度强行打0的标签，网络学习效果会不理想。**
 
 ### 损失函数
 对**位置、种类、置信度**进行学习；  
@@ -252,32 +267,3 @@ x、y、w、h使用**MSE**（均方误差）作为损失函数，置信度、类
 
 ![YOLOV3损失函数](https://github.com/SZUZOUXu/Deep-Learning/blob/main/image/YOLOV3%E6%8D%9F%E5%A4%B1%E5%87%BD%E6%95%B0.png)
 
-
-## 1、计算loss所需参数
-在计算loss的时候，实际上是**pred和target**之间的对比：
-- pred就是网络的预测结果。
-- target就是网络的真实框情况。
-
-## 2、pred是什么
-对于yolo3的模型来说，网络最后输出的内容就是**三个特征层每个网格点对应的预测框及其种类**，即三个特征层分别对应着图片被分为不同size的网格后，**每个网格点上三个先验框对应的位置、置信度及其种类**。
-
-输出层的shape分别为(13,13,75)，(26,26,75)，(52,52,75)，最后一个维度为75是因为是基于voc数据集的，它的类为20种，yolo3只有针对每一个特征层存在3个先验框，所以最后维度为3x25；
-如果使用的是coco训练集，类则为80种，最后的维度应该为255 = 3x85，三个特征层的shape为(13,13,255)，(26,26,255)，(52,52,255)
-
-现在的y_pre还是没有解码的，解码了之后才是真实图像上的情况。
-
-## 3、target是什么
-target就是**一个真实图像中，真实框的情况**。
-第一个维度是batch_size，第二个维度是每一张图片里面真实框的**数量**，第三个维度内部是真实框的信息，包括**位置以及种类**。
-
-## 4、loss的计算过程
-拿到pred和target后，不可以简单的减一下作为对比，需要进行如下步骤。
-
-判断真实框在图片中的位置，判断其**属于哪一个网格点去检测**。判断真实框和这个特征点的**哪个先验框重合程度最高**。计算该网格点应该有**怎么样的预测结果才能获得真实框**，与真实框重合度最高的**先验框被用于作为正样本**。
-
-根据网络的预测结果获得**预测框**，计算预测框和所有真实框的**重合程度**，通过GIOU，如果重合程度大于一定门限，则将**该预测框对应的先验框忽略**。其余作为负样本。
-
-最终损失由三个部分组成：
-1. 正样本，编码后的**长宽与xy轴偏移量与预测值的差距**。
-2. 正样本，预测结果中**置信度的值与1对比**；负样本，预测结果中**置信度的值与0对比**。
-3. 实际存在的框，**种类预测结果与实际结果的对比**。
