@@ -17,16 +17,11 @@
 - [二、训练部分](#二训练部分)
   - [评价指标](#评价指标)
   - [loss求解](#loss求解)
-    - [计算loss的pred、target](#计算loss的predtarget)
     - [Bounding box prior先验框](#bounding-box-prior先验框)
     - [Bounding box prior 的作用：](#bounding-box-prior-的作用)
     - [Bounding box prior样本划分](#bounding-box-prior样本划分)
-    - [训练的时候为什么需要进行正负样本筛选？](#训练的时候为什么需要进行正负样本筛选)
-    - [为什么有忽略样例？](#为什么有忽略样例)
-    - [训练用例-\>Bounding box prior](#训练用例-bounding-box-prior)
+    - [训练用例->Bounding box prior](#训练用例-bounding-box-prior)
     - [Bounding box](#bounding-box)
-    - [学习目标是tx，ty，tw，th 偏移量而不是直接学习bx，by，bw，bh呢？](#学习目标是txtytwth-偏移量而不是直接学习bxbybwbh呢)
-    - [为什么要用指数？](#为什么要用指数)
     - [种类-class confidence](#种类-class-confidence)
     - [置信度confidence](#置信度confidence)
     - [损失函数](#损失函数)
@@ -201,8 +196,10 @@ bounding box prior如图所示：
 
 ![YOLOV3 anchor box](https://github.com/SZUZOUXu/Deep-Learning/blob/main/image/YOLOV3%20anchor%20box.png)
 
-每个尺度的特征图会预测出3个bounding box prior, 而bounding box prior的大小则采用**K-means进行聚类分析**，在训练集中所有样本的真实框中聚类出**具有代表性形状的宽和高**。
+每个尺度的特征图会预测出3个bounding box prior, 而bounding box prior的大小则采用**K-means进行聚类分析**，在训练集中所有样本的真实框中聚类出**具有代表性形状的宽和高**。  
 **对每个真实框分配一个IOU最高的先验框（1对1）**，其objectness score = 1若一个真实框分配多个IOU，会损失计算的物体存在的概率（objectness）
+
+K-means见：[K-means聚类](https://github.com/SZUZOUXu/Deep-Learning/blob/main/K-mean%E8%81%9A%E7%B1%BB.md)
 
 ### Bounding box prior 的作用：
 **降低模型学习难度，模型训练更加稳定，获得更高的precision。**  
