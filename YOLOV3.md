@@ -211,7 +211,7 @@ new_image.show()
 - Precision（精度）：预测之中的正确率（挑出的西瓜中好瓜的概率）
 - Recall（召回率）：好瓜有多少比例被挑出来了
 - AP：PR曲线与x轴围成的面积，越接近1越好
-- 预测框置信度confidence：(box内存在对象的概率 * box 与该对象实际box的IOU)
+- 预测框置信度confidence：(**box内存在对象的概率 * box 与该对象实际box的IOU**)
 - mAP(mean Average Precision)即各类别AP的平均值  
 IOU from 0.5 to 0.95 with a step size of 0.05，共计9个IOU（0.45/0.05），20个种类（VOC）  
 计算IOU = 0.5作为confidence时的AP...->计算mAP  
