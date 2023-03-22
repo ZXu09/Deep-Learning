@@ -49,6 +49,12 @@ YOLOv3 将对象检测问题构建为两步问题，首先识别边界框（回�
 ## 1、主干特征提取网络darknet53介绍
 输入416×416×3->进行下采样，宽高不断压缩，同时通道数不断扩张；若是进行上采样，宽高不断扩张，同时通道数不断压缩。
 
+### 数据增强
+数据增强其实就是让图片变得更加多样
+- 对图像进行缩放并进行长和宽的扭曲
+- 对图像进行翻转
+- 对图像进行色域扭曲
+
 ![darknet53](https://github.com/SZUZOUXu/yolov3-pytorch/blob/main/image/darknet53.jpg)
 
 残差网络介绍：[Resnet50.md](https://github.com/SZUZOUXu/Deep-Learning/blob/main/Resnet50.md)
